@@ -1,0 +1,146 @@
+# DisasterSense: 
+Advanced Neural Network for Predicting Natural Catastrophes and Impacts
+
+**DisasterSense** is an advanced C++ project designed to analyze natural disaster risks and predict their potential impacts using artificial neural networks (ANNs) such as multilayer perceptrons (MLPs). The project integrates libraries like Eigen for matrix operations, JSON for data manipulation, and SFML for graphical visualizations.
+
+## Features
+
+- **Neural Network (MLP):** Custom implementation of a multilayer perceptron for predictive analysis.
+- **Matrix Computation:** Powered by the Eigen library for efficient mathematical operations.
+- **JSON Data Handling:** Supports structured data input and output through the JSON for Modern C++ library.
+- **Visualization:** Real-time graphical representation of predictions and risk factors using SFML.
+
+## Project Structure
+
+```
+GeoImpactAI/
+├── build/          # Compiled binaries
+├── data/           # Data files (e.g., JSON, CSV)
+├── include/        # Header files (.h)
+├── libs/           # External libraries (Eigen, JSON, SFML)
+├── src/            # Source files (.cpp)
+├── README.md       # Project documentation
+```
+
+## Requirements
+
+- **C++ Compiler** (G++ or equivalent)
+- **Visual Studio Code** with extensions:
+  - C/C++ (Microsoft)
+  - Code Runner
+  - CMake Tools (optional)
+- **Libraries**:
+  - [Eigen](https://eigen.tuxfamily.org/) (for matrix computations)
+  - [JSON for Modern C++](https://github.com/nlohmann/json) (for JSON handling)
+  - [SFML](https://www.sfml-dev.org/) (for graphics)
+
+## Installation
+
+1. Clone the repository or create a project directory:
+   ```bash
+   git clone https://github.com/DisasterSense/DisasterSense.git
+   cd DisasterSense
+   ```
+
+2. Set up external libraries:
+   - Download Eigen and place it in `libs/eigen/`.
+   - Download JSON for Modern C++ and place `json.hpp` in `libs/json/`.
+   - Download SFML and extract it to `libs/SFML/`.
+
+3. Configure the project in Visual Studio Code:
+   - Add include and library paths in `tasks.json` (see below for configuration).
+
+## Configuration
+
+### `tasks.json` Example
+```json
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build Project",
+            "type": "shell",
+            "command": "g++",
+            "args": [
+                "-I", "${workspaceFolder}/libs/eigen",
+                "-I", "${workspaceFolder}/libs/json",
+                "-I", "${workspaceFolder}/libs/SFML/include",
+                "-L", "${workspaceFolder}/libs/SFML/lib",
+                "-lsfml-graphics",
+                "-lsfml-window",
+                "-lsfml-system",
+                "-g",
+                "${workspaceFolder}/src/*.cpp",
+                "-o",
+                "${workspaceFolder}/build/GeoImpactAI"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        }
+    ]
+}
+```
+
+### `launch.json` Example
+```json
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Run GeoImpactAI",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/GeoImpactAI",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": true,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "Build Project"
+        }
+    ]
+}
+```
+
+## Usage
+
+1. Place your input data in the `data/` directory (e.g., `data/input.json`).
+2. Open the project in VS Code.
+3. Build the project:
+   - Press `Ctrl+Shift+B` to compile.
+4. Run the project:
+   - Press `F5` to execute the binary.
+
+## Example
+
+Here is an example of running the project with sample JSON input:
+```json
+{
+    "region": "Coastal Area",
+    "temperature": 28.5,
+    "humidity": 75.2
+}
+```
+
+The program will predict the risk level and impact severity based on the input data.
+
+## Future Enhancements
+
+- Implement additional machine learning models.
+- Add support for real-time data streaming.
+- Enhance the visualization capabilities with 3D mapping.
+
+## License
+
+This project is open-source and available under the MIT License.
+
