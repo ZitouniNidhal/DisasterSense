@@ -3,6 +3,8 @@
 #include <cmath>
 #include <cstdlib>
 #include <stdexcept>
+#include <bits/algorithmfwd.h>
+#include <fstream>
 
 class MLP {
 public:
@@ -106,11 +108,28 @@ void MLP::update_weights(double learning_rate) {
     }
 }
 
-void MLP::train(const std::vector<std::vector<double>>& X, const std::vector<int>& y, int epochs, double learning_rate) {
+void MLP::train(const std::vector<std::vector<double>>& X, const std::vector<int>& y, int epochs, double learning_rate, int patience) {
+    double best_accuracy = 0.0;
+    int epochs_without_improvement = 0;
+
     for (int epoch = 0; epoch < epochs; ++epoch) {
         for (size_t i = 0; i < X.size(); ++i) {
             forward(X[i]);  // Propagation avant
             backpropagate(X, y, learning_rate);  // Rétropropagation
+        }
+
+        double accuracy = evaluate(X, y);
+        std::cout << "Epoch " << epoch + 1 << ", Accuracy: " << accuracy << std::endl;
+
+        if (accuracy > best_accuracy) {
+            best_accuracy = accuracy;
+            epochs_without_improvement = 0;  // Réinitialiser le compteur
+        } else {
+            epochs_without_improvement++;
+            if (epochs_without_improvement >= patience) {
+                std::cout << "Early stopping at epoch " << epoch + 1 << std::endl;
+                break;  // Arrêter l'entraînement
+            }
         }
     }
 }
@@ -170,4 +189,31 @@ void MLP::load_weights(const std::string& filename) {
 
 std::vector<double> MLP::predict(const std::vector<double>& inputs) {
     return forward(inputs);  // Utiliser la propagation avant pour prédire
+}
+void MLP::normalize_data(std::vector<std::vector<double>>& data) {
+    for (size_t i = 0; i < data[0].size(); ++i) {
+        double min_val = data[0][i];
+        double max_val = data[0][i];
+        for (const auto& row : data) {
+            if (row[i] < min_val) min_val = row[i];
+            if (row[i] > max_val) max_val = row[i];
+        }
+        for (auto& row : data) {
+            row[i] = (row[i] - min_val) / (max_val - min_val);  // Normalisation min-max
+        }
+    }
+}
+
+std::vector<std::vector<double>> MLP::get_weights(int layer_index) {
+    if (layer_index < 0 || layer_index >= weights.size()) {
+        throw std::out_of_range("Layer index out of range");
+    }
+    return weights[layer_index];
+}
+
+std::vector<double> MLP::get_biases(int layer_index) {
+    if (layer_index < 0 || layer_index >= biases.size()) {
+        throw std::out_of_range("Layer index out of range");
+    }
+    return biases[layer_index];
 }
