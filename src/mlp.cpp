@@ -1,13 +1,32 @@
-#include "mlp.h"
+#include <iostream>
+#include <vector>
 #include <cmath>
 #include <cstdlib>
-#include <iostream>
+#include <stdexcept>
 
-MLP::MLP(const std::vector<int>& layer_sizes) {
-    this->layer_sizes = layer_sizes;
-    
+class MLP {
+public:
+    MLP(const std::vector<int>& layer_sizes);
+    std::vector<double> forward(const std::vector<double>& inputs);
+    void backpropagate(const std::vector<std::vector<double>>& X, const std::vector<int>& y, double learning_rate);
+    void train(const std::vector<std::vector<double>>& X, const std::vector<int>& y, int epochs, double learning_rate);
+    double evaluate(const std::vector<std::vector<double>>& X, const std::vector<int>& y);
+    void save_weights(const std::string& filename);
+    void load_weights(const std::string& filename);
+    std::vector<double> predict(const std::vector<double>& inputs);
+
+private:
+    std::vector<int> layer_sizes;
+    std::vector<std::vector<std::vector<double>>> weights;
+    std::vector<std::vector<double>> biases;
+    std::vector<std::vector<double>> activations;
+    std::vector<std::vector<double>> delta;
+
+    void update_weights(double learning_rate);
+};
+
+MLP::MLP(const std::vector<int>& layer_sizes) : layer_sizes(layer_sizes) {
     for (size_t i = 1; i < layer_sizes.size(); ++i) {
-        // Initialisation des poids avec des valeurs aléatoires
         std::vector<std::vector<double>> layer_weights(layer_sizes[i], std::vector<double>(layer_sizes[i-1]));
         for (size_t j = 0; j < layer_weights.size(); ++j) {
             for (size_t k = 0; k < layer_weights[j].size(); ++k) {
@@ -16,18 +35,19 @@ MLP::MLP(const std::vector<int>& layer_sizes) {
         }
         weights.push_back(layer_weights);
 
-        // Initialisation des biais
         std::vector<double> layer_biases(layer_sizes[i], 0.0);  // Initialisation à zéro
         biases.push_back(layer_biases);
     }
 }
 
 std::vector<double> MLP::forward(const std::vector<double>& inputs) {
+    if (inputs.size() != layer_sizes[0]) {
+        throw std::invalid_argument("Input size does not match the expected size.");
+    }
+
     activations.clear();
-    z_values.clear();
-    
     std::vector<double> activation = inputs;  // Activation initiale = Entrée
-    
+
     for (size_t i = 0; i < weights.size(); ++i) {
         std::vector<double> z(layer_sizes[i+1], 0.0);
         for (size_t j = 0; j < weights[i].size(); ++j) {
@@ -36,9 +56,6 @@ std::vector<double> MLP::forward(const std::vector<double>& inputs) {
             }
             z[j] += biases[i][j];  // Ajouter le biais
         }
-        z_values.push_back(z);
-
-        // Application de la fonction d'activation (sigmoïde ici)
         std::vector<double> activation_next;
         for (double val : z) {
             activation_next.push_back(1.0 / (1.0 + exp(-val)));  // Sigmoïde
@@ -48,8 +65,8 @@ std::vector<double> MLP::forward(const std::vector<double>& inputs) {
     }
     return activations.back();  // Retourner la sortie finale
 }
-void MLP::backpropagate(const std::vector<std::vector<double>>& X,
-                        const std::vector<int>& y, double learning_rate) {
+
+void MLP::backpropagate(const std::vector<std::vector<double>>& X, const std::vector<int>& y, double learning_rate) {
     // Calculer l'erreur (delta) pour la dernière couche
     delta.clear();
     std::vector<double> output_delta(layer_sizes.back());
@@ -60,38 +77,97 @@ void MLP::backpropagate(const std::vector<std::vector<double>>& X,
 
     // Rétropropager l'erreur à travers les couches
     for (int i = weights.size() - 2; i >= 0; --i) {
-        std::vector<double> layer_delta(layer_sizes[i+1], 0.0);
-        for (size_t j = 0; j < layer_sizes[i+1]; ++j) {
-            for (size_t k = 0; k < layer_sizes[i]; ++k) {
-                layer_delta[j] += delta[i][j] * weights[i+1][j][k];
+        std::vector<double> layer_delta(layer_sizes[i + 1], 0.0);
+        for (size_t j = 0; j < weights[i + 1].size(); ++j) {
+            for (size_t k = 0; k < weights[i + 1][j].size(); ++k) {
+                layer_delta[k] += delta.back()[j] * weights[i + 1][j][k];
             }
-            layer_delta[j] *= activations[i][j] * (1 - activations[i][j]);  // Derivée sigmoïde
+        }
+        // Appliquer la dérivée de la fonction d'activation (sigmoïde)
+        for (size_t j = 0; j < layer_delta.size(); ++j) {
+            layer_delta[j] *= activations[i][j] * (1 - activations[i][j]);
         }
         delta.push_back(layer_delta);
     }
+    std::reverse(delta.begin(), delta.end());  // Inverser pour correspondre à l'ordre des couches
 
     // Mettre à jour les poids et les biais
     update_weights(learning_rate);
 }
+
 void MLP::update_weights(double learning_rate) {
     for (size_t i = 0; i < weights.size(); ++i) {
         for (size_t j = 0; j < weights[i].size(); ++j) {
             for (size_t k = 0; k < weights[i][j].size(); ++k) {
-                weights[i][j][k] -= learning_rate * delta[i][j] * activations[i][k];
+                weights[i][j][k] -= learning_rate * delta[i + 1][j] * activations[i][k];  // Mise à jour des poids
             }
-        }
-        for (size_t j = 0; j < biases[i].size(); ++j) {
-            biases[i][j] -= learning_rate * delta[i][j];
-        }
-    }
-}
-void MLP::train(const std::vector<std::vector<double>>& X,
-                const std::vector<int>& y, int epochs, double learning_rate) {
-    for (int epoch = 0; epoch < epochs; ++epoch) {
-        for (size_t i = 0; i < X.size(); ++i) {
-            forward(X[i]);
-            backpropagate(X, y, learning_rate);
+            biases[i][j] -= learning_rate * delta[i + 1][j];  // Mise à jour des biais
         }
     }
 }
 
+void MLP::train(const std::vector<std::vector<double>>& X, const std::vector<int>& y, int epochs, double learning_rate) {
+    for (int epoch = 0; epoch < epochs; ++epoch) {
+        for (size_t i = 0; i < X.size(); ++i) {
+            forward(X[i]);  // Propagation avant
+            backpropagate(X, y, learning_rate);  // Rétropropagation
+        }
+    }
+}
+double MLP::evaluate(const std::vector<std::vector<double>>& X, const std::vector<int>& y) {
+    int correct_predictions = 0;
+    for (size_t i = 0; i < X.size(); ++i) {
+        std::vector<double> output = forward(X[i]);
+        int predicted_class = std::distance(output.begin(), std::max_element(output.begin(), output.end()));
+        if (predicted_class == y[i]) {
+            correct_predictions++;
+        }
+    }
+    return static_cast<double>(correct_predictions) / X.size();  // Précision
+}
+
+void MLP::save_weights(const std::string& filename) {
+    std::ofstream file(filename);
+    if (!file.is_open()) {
+        throw std::runtime_error("Could not open file for saving weights.");
+    }
+    for (const auto& layer_weights : weights) {
+        for (const auto& neuron_weights : layer_weights) {
+            for (double weight : neuron_weights) {
+                file << weight << " ";
+            }
+            file << "\n";
+        }
+    }
+    for (const auto& layer_biases : biases) {
+        for (double bias : layer_biases) {
+            file << bias << " ";
+        }
+        file << "\n";
+    }
+    file.close();
+}
+
+void MLP::load_weights(const std::string& filename) {
+    std::ifstream file(filename);
+    if (!file.is_open()) {
+        throw std::runtime_error("Could not open file for loading weights.");
+    }
+    for (auto& layer_weights : weights) {
+        for (auto& neuron_weights : layer_weights) {
+            for (double& weight : neuron_weights) {
+                file >> weight;
+            }
+        }
+    }
+    for (auto& layer_biases : biases) {
+        for (double& bias : layer_biases) {
+            file >> bias;
+        }
+    }
+    file.close();
+}
+
+std::vector<double> MLP::predict(const std::vector<double>& inputs) {
+    return forward(inputs);  // Utiliser la propagation avant pour prédire
+}
