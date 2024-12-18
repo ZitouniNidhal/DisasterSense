@@ -23,8 +23,12 @@ private:
     std::vector<std::vector<double>> biases;
     std::vector<std::vector<double>> activations;
     std::vector<std::vector<double>> delta;
+    int patience = 10;  // Define patience with a default value
 
     void update_weights(double learning_rate);
+    void normalize_data(std::vector<std::vector<double>>& data);
+    std::vector<std::vector<double>> get_weights(int layer_index);
+    std::vector<double> get_biases(int layer_index);
 };
 
 MLP::MLP(const std::vector<int>& layer_sizes) : layer_sizes(layer_sizes) {
@@ -108,7 +112,7 @@ void MLP::update_weights(double learning_rate) {
     }
 }
 
-void MLP::train(const std::vector<std::vector<double>>& X, const std::vector<int>& y, int epochs, double learning_rate, int patience) {
+void MLP::train(const std::vector<std::vector<double>>& X, const std::vector<int>& y, int epochs, double learning_rate) {
     double best_accuracy = 0.0;
     int epochs_without_improvement = 0;
 
