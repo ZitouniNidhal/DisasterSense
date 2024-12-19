@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <stdexcept>
 #include <bits/algorithmfwd.h>
+#include <random>
 #include <fstream>
 #include <numeric>
 
@@ -31,6 +32,10 @@ private:
     std::vector<std::vector<double>> get_weights(int layer_index);
     std::vector<double> get_biases(int layer_index);
     void batch_normalization(std::vector<double>& activations);
+    void dropout(std::vector<double>& activations, double dropout_rate);
+    void visualize_weights();
+    void save_model(const std::string& filename);
+    void load_model(const std::string& filename);
 };
 
 MLP::MLP(const std::vector<int>& layer_sizes) : layer_sizes(layer_sizes) {
@@ -236,3 +241,98 @@ void MLP::batch_normalization(std::vector<double>& activations) {
         val = (val - mean) / sqrt(variance + 1e-8);  // Add epsilon to avoid division by zero
     }
 }
+void MLP::dropout(std::vector<double>& activations, double dropout_rate) {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::bernoulli_distribution d(1.0 - dropout_rate);
+
+    for (auto& val : activations) {
+        if (!d(gen)) {
+            val = 0;  // Set to zero if dropped out
+        }
+    }
+}
+void MLP::visualize_weights() {
+    for (size_t layer = 0; layer < weights.size(); ++layer) {
+        std::cout << "Layer " << layer + 1 << " weights:\n";
+        for (const auto& neuron_weights : weights[layer]) {
+            for (const auto& weight : neuron_weights) {
+                std::cout << weight << " ";
+            }
+            std::cout << "\n";
+        }
+        std::cout << "\n";
+    }
+}
+void MLP::save_model(const std::string& filename) {
+    std::ofstream file(filename);
+    if (!file.is_open()) {
+        throw std::runtime_error("Could not open file for saving model.");
+    }
+    // Save layer sizes
+    for (const auto& size : layer_sizes) {
+        file << size << " ";
+    }
+    file << "\n";
+
+    // Save weights and biases
+    save_weights(filename);
+    for (const auto& layer_biases : biases) {
+        for (double bias : layer_biases) {
+            file << bias << " ";
+        }
+        file << "\n";
+    }
+    file.close();
+}
+
+void MLP::load_model(const std::string& filename) {
+    std::ifstream file(filename);
+    if (!file.is_open()) {
+        throw std::runtime_error("Could not open file for loading model.");
+    }
+    // Load layer sizes
+    layer_sizes.clear();
+    int size;
+    while (file >> size) {
+        layer_sizes.push_back(size);
+    }
+
+    // Load weights and biases
+    load_weights(filename);
+    for (auto& layer_biases : biases) {
+        for (double& bias : layer_biases) {
+            file >> bias;
+        }
+    }
+    file.close();
+}
+void MLP::train_with_validation(const std::vector<std::vector<double>>& X_train, const std::vector<int>& y_train,
+                const std::vector<std::vector<double>>& X_val, const std::vector<int>& y_val,
+                int epochs, double learning_rate) {
+    double best_accuracy = 0.0;
+    int epochs_without_improvement = 0;
+
+    for (int epoch = 0; epoch < epochs; ++epoch) {
+        for (size_t i = 0; i < X_train.size(); ++i) {
+            forward(X_train[i]);  // Propagation avant
+            backpropagate(X_train, y_train, learning_rate);  // Rétropropagation
+        }
+
+        double accuracy = evaluate(X_val, y_val);
+        std::cout << "Epoch " << epoch + 1 << ", Validation Accuracy: " << accuracy << std::endl;
+
+        if (accuracy > best_accuracy) {
+            best_accuracy = accuracy;
+            epochs_without_improvement = 0;  // Réinitialiser le compteur
+        } else {
+            epochs_without_improvement++;
+            if (epochs_without_improvement >= patience) {
+                std::cout << "Early stopping at epoch " << epoch + 1 << std::endl;
+                break;  // Arrêter l'entraînement
+            }
+        }
+    }
+}
+
+
