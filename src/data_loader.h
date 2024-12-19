@@ -36,22 +36,22 @@ DataLoader::DataLoader(const std::string& file_path) : file_path(file_path) {
 }
 
 void DataLoader::load_csv() {
-    std::ifstream file(file_path);
-    if (!file.is_open()) {
-        throw std::runtime_error("Could not open file: " + file_path);
+    std::ifstream file(file_path); // Ouvre le fichier spécifié par 'file_path' en mode lecture.
+    if (!file.is_open()) { // Vérifie si le fichier a été ouvert avec succès.
+        throw std::runtime_error("Could not open file: " + file_path); // Si le fichier ne peut pas être ouvert, lance une exception avec un message d'erreur.
     }
 
-    std::string line;
-    while (std::getline(file, line)) {
-        std::stringstream ss(line);
-        std::string value;
-        std::vector<std::string> row;
-        while (std::getline(ss, value, ',')) {
-            row.push_back(value);
+    std::string line; // Déclare une variable pour stocker chaque ligne lue du fichier.
+    while (std::getline(file, line)) { // Lit le fichier ligne par ligne jusqu'à la fin.
+        std::stringstream ss(line); // Crée un stringstream à partir de la ligne lue pour faciliter la séparation des valeurs.
+        std::string value; // Déclare une variable pour stocker chaque valeur séparée par des virgules.
+        std::vector<std::string> row; // Déclare un vecteur pour stocker toutes les valeurs d'une ligne.
+        while (std::getline(ss, value, ',')) { // Sépare la ligne en valeurs individuelles en utilisant la virgule comme délimiteur.
+            row.push_back(value); // Ajoute chaque valeur au vecteur 'row'.
         }
-        raw_data.push_back(row);
+        raw_data.push_back(row); // Ajoute le vecteur 'row' au vecteur 'raw_data' qui stocke toutes les lignes du fichier.
     }
-    file.close();
+    file.close(); // Ferme le fichier après avoir lu toutes les lignes.
 }
 
 void DataLoader::preprocess() {
