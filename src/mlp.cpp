@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <bits/algorithmfwd.h>
 #include <fstream>
+#include <numeric>
 
 class MLP {
 public:
@@ -29,6 +30,7 @@ private:
     void normalize_data(std::vector<std::vector<double>>& data);
     std::vector<std::vector<double>> get_weights(int layer_index);
     std::vector<double> get_biases(int layer_index);
+    void batch_normalization(std::vector<double>& activations);
 };
 
 MLP::MLP(const std::vector<int>& layer_sizes) : layer_sizes(layer_sizes) {
@@ -220,4 +222,17 @@ std::vector<double> MLP::get_biases(int layer_index) {
         throw std::out_of_range("Layer index out of range");
     }
     return biases[layer_index];
+}
+void MLP::batch_normalization(std::vector<double>& activations) {
+    double mean = std::accumulate(activations.begin(), activations.end(), 0.0) / activations.size();
+    double variance = 0.0;
+
+    for (const auto& val : activations) {
+        variance += (val - mean) * (val - mean);
+    }
+    variance /= activations.size();
+
+    for (auto& val : activations) {
+        val = (val - mean) / sqrt(variance + 1e-8);  // Add epsilon to avoid division by zero
+    }
 }
