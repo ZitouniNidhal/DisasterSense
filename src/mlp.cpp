@@ -334,5 +334,65 @@ void MLP::train_with_validation(const std::vector<std::vector<double>>& X_train,
         }
     }
 }
+void MLP::clip_gradients(double clip_value) {
+    for (size_t i = 0; i < weights.size(); ++i) {
+        for (size_t j = 0; j < weights[i].size(); ++j) {
+            for (size_t k = 0; k < weights[i][j].size(); ++k) {
+                if (delta[i + 1][j] > clip_value) {
+                    delta[i + 1][j] = clip_value;
+                } else if (delta[i + 1][j] < -clip_value) {
+                    delta[i + 1][j] = -clip_value;
+                }
+            }
+        }
+    }
+}
 
+double MLP::get_learning_rate(int epoch, double initial_lr, double decay_rate) {
+    return initial_lr / (1 + decay_rate * epoch);
+}
+
+double MLP::precision(const std::vector<std::vector<double>>& X, const std::vector<int>& y) {
+    int true_positive = 0;
+    int false_positive = 0;
+
+    for (size_t i = 0; i < X.size(); ++i) {
+        std::vector<double> output = forward(X[i]);
+        int predicted_class = std::distance(output.begin(), std::max_element(output.begin(), output.end()));
+        if (predicted_class == 1) { // Assuming class 1 is the positive class
+            if (predicted_class == y[i]) {
+                true_positive++;
+            } else {
+                false_positive++;
+            }
+        }
+    }
+    return static_cast<double>(true_positive) / (true_positive + false_positive);
+}
+
+double MLP::recall(const std::vector<std::vector<double>>& X, const std::vector<int>& y) {
+    int true_positive = 0;
+    int false_negative = 0;
+
+    for (size_t i = 0; i < X.size(); ++i) {
+        std::vector<double> output = forward(X[i]);
+        int predicted_class = std::distance(output.begin(), std::max_element(output.begin(), output.end()));
+        if (predicted_class == 1) { // Assuming class 1 is the positive class
+            if (predicted_class == y[i]) {
+                true_positive++;
+            }
+        } else {
+            if (y[i] == 1) {
+                false_negative++;
+            }
+        }
+    }
+    return static_cast<double>(true_positive) / (true_positive + false_negative);
+}
+
+double MLP::f1_score(const std::vector<std::vector<double>>& X, const std::vector<int>& y) {
+    double prec = precision(X, y);
+    double rec = recall(X, y);
+    return 2 * (prec * rec) / (prec + rec);
+}
 
