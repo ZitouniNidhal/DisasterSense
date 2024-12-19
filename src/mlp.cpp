@@ -16,6 +16,9 @@ public:
     void train(const std::vector<std::vector<double>>& X, const std::vector<int>& y, int epochs, double learning_rate);
     double evaluate(const std::vector<std::vector<double>>& X, const std::vector<int>& y);
     void save_weights(const std::string& filename);
+    void train_with_validation(const std::vector<std::vector<double>>& X_train, const std::vector<int>& y_train,
+                               const std::vector<std::vector<double>>& X_val, const std::vector<int>& y_val,
+                               int epochs, double learning_rate);
     void load_weights(const std::string& filename);
     std::vector<double> predict(const std::vector<double>& inputs);
 
@@ -27,6 +30,9 @@ private:
     std::vector<std::vector<double>> delta;
     int patience = 10;  // Define patience with a default value
 
+    void clip_gradients(double clip_value);
+    double get_learning_rate(int epoch, double initial_lr, double decay_rate);
+
     void update_weights(double learning_rate);
     void normalize_data(std::vector<std::vector<double>>& data);
     std::vector<std::vector<double>> get_weights(int layer_index);
@@ -35,6 +41,7 @@ private:
     void dropout(std::vector<double>& activations, double dropout_rate);
     void visualize_weights();
     void save_model(const std::string& filename);
+    double precision(const std::vector<std::vector<double>>& X, const std::vector<int>& y);
     void load_model(const std::string& filename);
 };
 
@@ -396,3 +403,56 @@ double MLP::f1_score(const std::vector<std::vector<double>>& X, const std::vecto
     return 2 * (prec * rec) / (prec + rec);
 }
 
+void MLP::save_hyperparameters(const std::string& filename, double learning_rate, int epochs) {
+    std::ofstream file(filename);
+    if (!file.is_open()) {
+        throw std::runtime_error("Could not open file for saving hyperparameters.");
+    }
+    file << "Learning Rate: " << learning_rate << "\n";
+    file << "Epochs: " << epochs << "\n";
+    file.close();
+}
+
+void MLP::load_hyperparameters(const std::string& filename, double& learning_rate, int& epochs) {
+    std::ifstream file(filename);
+    if (!file.is_open()) {
+        throw std::runtime_error("Could not open file for loading hyperparameters.");
+    }
+    std::string line;
+    while (std::getline(file, line)) {
+        if (line.find("Learning Rate:") != std::string::npos) {
+            learning_rate = std::stod(line.substr(line.find(":") + 1));
+        } else if (line.find("Epochs:") != std::string::npos) {
+            epochs = std::stoi(line.substr(line.find(":") + 1));
+        }
+    }
+    file.close();
+}
+
+void MLP:: train(const std::vector<std::vector<double>>& X_train, const std::vector<int>& y_train,
+                const std::vector<std::vector<double>>& X_val, const std::vector<int>& y_val,
+                int epochs, double learning_rate) {
+    double best_accuracy = 0.0;
+    int epochs_without_improvement = 0;
+
+    for (int epoch = 0; epoch < epochs; ++epoch) {
+        for (size_t i = 0; i < X_train.size(); ++i) {
+            forward(X_train[i]);  // Propagation avant
+            backpropagate(X_train, y_train, learning_rate);  // Rétropropagation
+        }
+
+        double accuracy = evaluate(X_val, y_val);
+        std::cout << "Epoch " << epoch + 1 << ", Validation Accuracy: " << accuracy << std::endl;
+
+        if (accuracy > best_accuracy) {
+            best_accuracy = accuracy;
+            epochs_without_improvement = 0;  // Réinitialiser le compteur
+        } else {
+            epochs_without_improvement++;
+            if (epochs_without_improvement >= patience) {
+                std::cout << "Early stopping at epoch " << epoch + 1 << std::endl;
+                break;  // Arrêter l'entraînement
+            }
+        }
+    }
+}
