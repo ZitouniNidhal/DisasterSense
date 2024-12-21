@@ -41,8 +41,12 @@ private:
     void dropout(std::vector<double>& activations, double dropout_rate);
     void visualize_weights();
     void save_model(const std::string& filename);
+    double f1_score(const std::vector<std::vector<double>>& X, const std::vector<int>& y);
+    double recall(const std::vector<std::vector<double>>& X, const std::vector<int>& y);
     double precision(const std::vector<std::vector<double>>& X, const std::vector<int>& y);
     void load_model(const std::string& filename);
+    void save_hyperparameters(const std::string& filename, double learning_rate, int epochs);
+    void load_hyperparameters(const std::string& filename, double& learning_rate, int& epochs);
 };
 
 MLP::MLP(const std::vector<int>& layer_sizes) : layer_sizes(layer_sizes) {
@@ -429,7 +433,7 @@ void MLP::load_hyperparameters(const std::string& filename, double& learning_rat
     file.close();
 }
 
-void MLP:: train(const std::vector<std::vector<double>>& X_train, const std::vector<int>& y_train,
+void MLP::train_with_validation(const std::vector<std::vector<double>>& X_train, const std::vector<int>& y_train,
                 const std::vector<std::vector<double>>& X_val, const std::vector<int>& y_val,
                 int epochs, double learning_rate) {
     double best_accuracy = 0.0;
