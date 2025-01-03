@@ -1,22 +1,31 @@
+
 #include <iostream>
 #include "mlp.h"
 #include "data_loader.h"
+#include "DataPreprocessor.h"
 
 int main() {
-    // Charger les données
+    // Load data
     DataLoader loader("data/input.csv");
     auto dataset = loader.load();
 
-    // Initialiser le MLP
-    std::vector<int> layer_sizes = {15, 128, 64, 2}; // Exemple : 15 entrées, 2 sorties
-    MLP model(layer_sizes);
+    // Preprocess data
+    DataPreprocessor preprocessor;
+    preprocessor.normalize_min_max(dataset.inputs);
+    preprocessor.shuffle_data(dataset.inputs, dataset.labels);
 
-    // Entraîner le modèle
-    model.train(dataset.inputs, dataset.labels, 100, 0.01);
+    // Split data into training and testing sets
+    std::vector ```cpp
+    <std::vector<double>> train_data, test_data;
+    std::vector<int> train_labels, test_labels;
+    preprocessor.train_test_split(dataset.inputs, dataset.labels, train_data, train_labels, test_data, test_labels);
 
-    // Afficher un résultat de test
-    auto prediction = model.forward(dataset.test_inputs[0]);
-    std::cout << "Prédiction : " << prediction[0] << ", Gravité : " << prediction[1] << std::endl;
+    // Continue with model training...
+    MLP model;
+    model.train(train_data, train_labels);
+
+    // Evaluate model...
+    model.evaluate(test_data, test_labels);
 
     return 0;
 }
