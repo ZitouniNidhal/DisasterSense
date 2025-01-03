@@ -1,4 +1,3 @@
-
 #include <iostream>
 #include "mlp.h"
 #include "data_loader.h"
@@ -15,17 +14,17 @@ int main() {
     preprocessor.shuffle_data(dataset.inputs, dataset.labels);
 
     // Split data into training and testing sets
-    std::vector ```cpp
-    <std::vector<double>> train_data, test_data;
+    std::vector<std::vector<double>> train_data, test_data;
     std::vector<int> train_labels, test_labels;
     preprocessor.train_test_split(dataset.inputs, dataset.labels, train_data, train_labels, test_data, test_labels);
 
     // Continue with model training...
-    MLP model;
+    MLP model({/* appropriate layer sizes */}); // Example: {input_size, hidden_layer_size, output_size}
     model.train(train_data, train_labels);
 
     // Evaluate model...
-    model.evaluate(test_data, test_labels);
+    double accuracy = model.evaluate(test_data, test_labels);
+    std::cout << "Model Accuracy: " << accuracy << std::endl;
 
     return 0;
 }
