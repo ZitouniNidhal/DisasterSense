@@ -20,7 +20,9 @@ int main() {
 
     // Continue with model training...
     MLP model({/* appropriate layer sizes */}); // Example: {input_size, hidden_layer_size, output_size}
-    model.train(train_data, train_labels);
+    int epochs = 100; // Example value
+    double learning_rate = 0.01; // Example value
+    model.train(train_data, train_labels, epochs, learning_rate);
 
     // Evaluate model...
     double accuracy = model.evaluate(test_data, test_labels);
