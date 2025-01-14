@@ -458,5 +458,13 @@ void MLP::train_with_validation(const std::vector<std::vector<double>>& X_train,
                 break;  // Arrêter l'entraînement
             }
         }
+        //added at 14/01/2025 
+        if(accuracy<0.5){
+            add.hidden_layer(1);
+            add.hidden_layer(2);
+            std::cout<<"hidden is added"<<std::endl;
+        }else{
+            std::cout<<"hidden is not added"<<std::endl;
+        }
     }
 }
